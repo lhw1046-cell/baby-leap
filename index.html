@@ -8,8 +8,9 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="아기 도약 달력 · 원더윅스 계산기">
 <meta property="og:description" content="출산예정일만 넣으면 열 번의 도약 시기를 달력으로 보여줍니다.">
-<!-- 썸네일을 넣으려면 아래 주석을 풀고 이미지 주소를 채우세요
-<meta property="og:image" content="https://내주소/thumb.png"> -->
+<meta property="og:url" content="https://lhw1046-cell.github.io/baby-leap/">
+<!-- 링크 카드 썸네일: thumb.png를 저장소에 올린 뒤 아래 한 줄의 주석을 풀면 됩니다
+<meta property="og:image" content="https://lhw1046-cell.github.io/baby-leap/thumb.png"> -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
@@ -84,6 +85,17 @@
   input[type=date]:focus-visible,button:focus-visible,.cal-nav button:focus-visible{
     outline:2px solid var(--sun);outline-offset:2px;
   }
+  .picker{display:flex;gap:6px;margin-top:9px}
+  .picker select{
+    flex:1;min-width:0;padding:11px 8px;font-size:15px;font-family:inherit;
+    background:rgba(0,0,0,.28);color:var(--snow);
+    border:1px solid var(--edge);border-radius:10px;
+    -webkit-appearance:none;appearance:none;text-align:center;
+  }
+  .picker select:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+  .picker select option{background:#1B2340;color:var(--snow)}
+  .err{margin:9px 0 0;font-size:12px;color:#FF9DAE;line-height:1.55}
+  .or{margin:12px 0 0;font-size:11px;letter-spacing:.1em;color:#6E789A;text-align:center}
   .hint{font-size:11.5px;color:var(--mist);margin:10px 0 0;line-height:1.55}
   .summary{
     display:flex;align-items:center;justify-content:space-between;gap:12px;
@@ -251,6 +263,13 @@
       <button type="button" data-mode="birth" aria-pressed="false">태어난 날</button>
     </div>
     <input type="date" id="dateInput" aria-label="기준 날짜">
+    <p class="err hidden" id="dateErr"></p>
+    <p class="or">또는 골라서 입력</p>
+    <div class="picker">
+      <select id="ySel" aria-label="년"></select>
+      <select id="mSel" aria-label="월"></select>
+      <select id="dSel" aria-label="일"></select>
+    </div>
     <p class="hint" id="modeHint">예정일을 넣으면 조산·늦은 출산과 상관없이 정확하게 맞춰집니다.</p>
   </section>
 
@@ -428,7 +447,12 @@ function loadSetup(){
     if(!raw) return;
     const v = JSON.parse(raw);
     if(v.mode) setMode(v.mode);
-    if(v.date){ $('dateInput').value = v.date; apply(false); }
+    if(v.date){
+      $('dateInput').value = v.date;
+      const [y,m,d] = v.date.split('-').map(Number);
+      if(y >= Y_MIN && y <= Y_MAX) syncPicker(y, m, d);
+      apply();
+    }
   }catch(e){}
 }
 
@@ -441,10 +465,42 @@ function setMode(m){
     : '예정일보다 이르거나 늦게 태어났다면 그만큼 어긋납니다. 예정일을 아신다면 그쪽이 더 정확해요.';
 }
 
-function apply(scroll){
+const pad = n => String(n).padStart(2,'0');
+const Y_NOW = new Date().getFullYear();
+const Y_MIN = Y_NOW - 5, Y_MAX = Y_NOW + 2;
+
+function buildPicker(){
+  let y = '';
+  for(let v = Y_MAX; v >= Y_MIN; v--) y += `<option value="${v}">${v}년</option>`;
+  $('ySel').innerHTML = y;
+  let m = '';
+  for(let v = 1; v <= 12; v++) m += `<option value="${v}">${v}월</option>`;
+  $('mSel').innerHTML = m;
+}
+function buildDays(y, m, keep){
+  const last = new Date(y, m, 0).getDate();
+  let s = '';
+  for(let v = 1; v <= last; v++) s += `<option value="${v}">${v}일</option>`;
+  $('dSel').innerHTML = s;
+  $('dSel').value = Math.min(keep || 1, last);
+  return Number($('dSel').value);
+}
+function syncPicker(y, m, d){
+  $('ySel').value = y; $('mSel').value = m; buildDays(y, m, d);
+}
+function showErr(msg){ $('dateErr').textContent = msg; $('dateErr').classList.remove('hidden'); }
+function hideErr(){ $('dateErr').classList.add('hidden'); }
+
+function apply(){
   const v = $('dateInput').value;
   if(!v) return;
   const [y,m,d] = v.split('-').map(Number);
+  if(!y || y < Y_MIN || y > Y_MAX){
+    showErr(`${Y_MIN}년부터 ${Y_MAX}년 사이로 입력해 주세요. 연도 네 자리를 모두 채워야 반영됩니다.`);
+    return;
+  }
+  hideErr();
+  const wasHidden = $('result').classList.contains('hidden');
   base = new Date(y, m-1, d);
   cal = new Date();
   selected = null;
@@ -454,7 +510,7 @@ function apply(scroll){
   $('sumDate').textContent = `${fmt(base)} · ${mode === 'due' ? '출산예정일' : '태어난 날'}`;
   render();
   saveSetup();
-  if(scroll) $('result').scrollIntoView({behavior:'smooth', block:'start'});
+  if(wasHidden) $('result').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
 function render(){
@@ -636,9 +692,27 @@ function renderTimeline(now){
 }
 
 document.querySelectorAll('.modes button').forEach(b =>
-  b.addEventListener('click', () => { setMode(b.dataset.mode); if(base) apply(false); }));
-$('dateInput').addEventListener('change', () => apply(true));
+  b.addEventListener('click', () => { setMode(b.dataset.mode); if(base) apply(); }));
+
+$('dateInput').addEventListener('change', () => {
+  const v = $('dateInput').value;
+  if(!v) return;
+  const [y,m,d] = v.split('-').map(Number);
+  if(y >= Y_MIN && y <= Y_MAX) syncPicker(y, m, d);
+  apply();
+});
+function fromPicker(){
+  const y = Number($('ySel').value), m = Number($('mSel').value);
+  const keep = Number($('dSel').value) || 1;
+  const d = buildDays(y, m, keep);
+  $('dateInput').value = `${y}-${pad(m)}-${pad(d)}`;
+  apply();
+}
+['ySel','mSel','dSel'].forEach(id => $(id).addEventListener('change', fromPicker));
+
 $('editBtn').addEventListener('click', () => {
+  hideErr();
+  if(base) syncPicker(base.getFullYear(), base.getMonth()+1, base.getDate());
   $('setup').classList.remove('hidden');
   $('summary').classList.add('hidden');
   $('setup').scrollIntoView({behavior:'smooth', block:'center'});
@@ -659,6 +733,11 @@ $('backToday').addEventListener('click', () => {
 $('prevM').addEventListener('click', () => { cal.setDate(1); cal.setMonth(cal.getMonth()-1); renderCal(); });
 $('nextM').addEventListener('click', () => { cal.setDate(1); cal.setMonth(cal.getMonth()+1); renderCal(); });
 
+buildPicker();
+$('dateInput').min = `${Y_MIN}-01-01`;
+$('dateInput').max = `${Y_MAX}-12-31`;
+const _t = new Date();
+syncPicker(_t.getFullYear(), _t.getMonth()+1, _t.getDate());
 setMode('due');
 loadSetup();
 </script>
