@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>아기 도약 달력 · 원더윅스 계산기</title>
+<meta name="description" content="출산예정일만 넣으면 열 번의 도약 시기를 달력으로 보여줍니다.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="아기 도약 달력 · 원더윅스 계산기">
+<meta property="og:description" content="출산예정일만 넣으면 열 번의 도약 시기를 달력으로 보여줍니다.">
+<meta property="og:url" content="https://lhw1046-cell.github.io/baby-leap/">
+<!-- 링크 카드 썸네일: thumb.png를 저장소에 올린 뒤 아래 한 줄의 주석을 풀면 됩니다
+<meta property="og:image" content="https://lhw1046-cell.github.io/baby-leap/thumb.png"> -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0F1528;
+    --dusk:#1B2340;
+    --edge:#2B3663;
+    --rain:#8CA0D9;
+    --sun:#FFC24D;
+    --mist:#9AA6C6;
+    --snow:#EDF1FB;
+    --bg1:#0F1528;
+    --bg2:#1B2340;
+    --accent:var(--mist);
+    --r:14px;
+    --font-body:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Malgun Gothic",system-ui,sans-serif;
+    --font-display:"Gowun Batang","Apple SD Gothic Neo",serif;
+    --font-num:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--font-body);
+    background:var(--bg1);
+    color:var(--snow);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    transition:background-color .8s ease;
+    padding:0 0 56px;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;z-index:-1;
+    background:radial-gradient(120% 70% at 50% -10%, var(--bg2) 0%, var(--bg1) 62%);
+    transition:background 1s ease;
+  }
+  main{max-width:520px;margin:0 auto;padding:0 18px}
+
+  /* ── header ── */
+  header{padding:28px 2px 18px}
+  .eyebrow{
+    font-size:10.5px;letter-spacing:.24em;color:var(--mist);
+    text-transform:uppercase;margin:0 0 8px;
+  }
+  h1{
+    font-family:var(--font-display);font-weight:700;
+    font-size:26px;letter-spacing:-.01em;margin:0;line-height:1.25;
+  }
+  h1 em{font-style:normal;color:var(--accent);transition:color .8s ease}
+
+  /* ── setup ── */
+  .setup{
+    background:rgba(255,255,255,.04);border:1px solid var(--edge);
+    border-radius:var(--r);padding:16px;margin-bottom:18px;
+  }
+  .setup p.lead{margin:0 0 12px;font-size:13px;color:var(--mist)}
+  .modes{display:flex;gap:6px;margin-bottom:12px}
+  .modes button{
+    flex:1;padding:9px 6px;font-size:12.5px;font-family:inherit;
+    background:transparent;color:var(--mist);
+    border:1px solid var(--edge);border-radius:9px;cursor:pointer;
+    transition:.2s;
+  }
+  .modes button[aria-pressed="true"]{
+    background:rgba(140,160,217,.16);color:var(--snow);border-color:var(--rain);
+  }
+  input[type=date]{
+    width:100%;padding:12px 13px;font-size:16px;font-family:var(--font-num);
+    background:rgba(0,0,0,.28);color:var(--snow);
+    border:1px solid var(--edge);border-radius:10px;
+  }
+  input[type=date]:focus-visible,button:focus-visible,.cal-nav button:focus-visible{
+    outline:2px solid var(--sun);outline-offset:2px;
+  }
+  .picker{display:flex;gap:6px;margin-top:9px}
+  .picker select{
+    flex:1;min-width:0;padding:11px 8px;font-size:15px;font-family:inherit;
+    background:rgba(0,0,0,.28);color:var(--snow);
+    border:1px solid var(--edge);border-radius:10px;
+    -webkit-appearance:none;appearance:none;text-align:center;
+  }
+  .picker select:focus-visible{outline:2px solid var(--sun);outline-offset:2px}
+  .picker select option{background:#1B2340;color:var(--snow)}
+  .err{margin:9px 0 0;font-size:12px;color:#FF9DAE;line-height:1.55}
+  .or{margin:12px 0 0;font-size:11px;letter-spacing:.1em;color:#6E789A;text-align:center}
+  .hint{font-size:11.5px;color:var(--mist);margin:10px 0 0;line-height:1.55}
+  .summary{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    font-size:12.5px;color:var(--mist);padding:11px 14px;margin-bottom:16px;
+    border:1px solid var(--edge);border-radius:11px;background:rgba(255,255,255,.03);
+  }
+  .summary b{color:var(--snow);font-weight:600}
+  .summary button{
+    background:none;border:0;color:var(--accent);font-family:inherit;
+    font-size:12.5px;cursor:pointer;padding:2px 0;border-bottom:1px solid currentColor;
+    transition:color .8s ease;
+  }
+
+  /* ── sky hero (signature) ── */
+  .hero{border-radius:18px;overflow:hidden;border:1px solid var(--edge);margin-bottom:14px}
+  .sky{position:relative;height:172px;overflow:hidden;background:linear-gradient(180deg,#0B1024 0%,#26315A 100%)}
+  .sky.sun{background:linear-gradient(180deg,#16203F 0%,#3D3352 55%,#7A5A48 100%)}
+  .cloud{
+    position:absolute;border-radius:50%;filter:blur(14px);
+    background:rgba(160,175,215,.5);animation:drift linear infinite;
+  }
+  .sky.sun .cloud{background:rgba(255,205,150,.22)}
+  .c1{width:180px;height:56px;top:26px;left:-60px;animation-duration:34s}
+  .c2{width:230px;height:70px;top:70px;left:-120px;opacity:.7;animation-duration:52s}
+  .c3{width:130px;height:44px;top:112px;left:-40px;opacity:.5;animation-duration:26s}
+  @keyframes drift{from{transform:translateX(0)}to{transform:translateX(560px)}}
+  .rain{
+    position:absolute;inset:-20% -10%;opacity:0;transition:opacity .8s ease;
+    background:repeating-linear-gradient(74deg,
+      rgba(200,214,250,.30) 0 1px, transparent 1px 9px);
+    animation:pour .5s linear infinite;
+  }
+  .sky.storm .rain{opacity:.55}
+  @keyframes pour{from{transform:translate(0,0)}to{transform:translate(-9px,32px)}}
+  .sun-disc{
+    position:absolute;width:78px;height:78px;border-radius:50%;
+    right:34px;top:34px;background:radial-gradient(circle,#FFE9AE 0%,#FFC24D 62%,rgba(255,194,77,0) 72%);
+    box-shadow:0 0 70px 26px rgba(255,194,77,.28);
+    opacity:0;transform:scale(.85);transition:opacity 1s ease,transform 1s ease;
+  }
+  .sky.sun .sun-disc{opacity:1;transform:scale(1)}
+  .horizon{position:absolute;left:0;right:0;bottom:0;height:56px;
+    background:linear-gradient(180deg,rgba(11,16,36,0) 0%,rgba(11,16,36,.9) 100%)}
+
+  .forecast{padding:16px 17px 18px;background:var(--dusk)}
+  .fc-line{font-family:var(--font-display);font-weight:700;font-size:25px;margin:0 0 6px;letter-spacing:-.01em}
+  .fc-line span{color:var(--accent);transition:color .8s ease}
+  .fc-sub{margin:0;font-size:13px;color:var(--mist)}
+  .fc-sub b{color:var(--snow);font-weight:600}
+
+  .bar-wrap{margin-top:15px}
+  .bar{height:6px;border-radius:99px;background:rgba(255,255,255,.09);overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:99px;background:var(--accent);
+    transition:width .6s ease,background-color .8s ease}
+  .bar-ends{display:flex;justify-content:space-between;font-family:var(--font-num);
+    font-size:10.5px;color:var(--mist);margin-top:7px;letter-spacing:.02em}
+
+  .strip{
+    display:flex;gap:1px;margin-bottom:22px;
+    border:1px solid var(--edge);border-radius:12px;overflow:hidden;
+  }
+  .strip div{flex:1;padding:12px 8px;background:rgba(255,255,255,.03);text-align:center}
+  .strip dt{font-size:10.5px;color:var(--mist);letter-spacing:.06em;margin:0 0 4px}
+  .strip dd{margin:0;font-family:var(--font-num);font-size:19px;font-weight:600}
+  .strip dd small{font-size:11px;color:var(--mist);font-weight:400;margin-left:1px}
+
+  /* ── sections ── */
+  h2{
+    font-size:11px;letter-spacing:.2em;color:var(--mist);font-weight:600;
+    margin:0 0 12px;padding-left:2px;
+  }
+  section{margin-bottom:28px}
+
+  /* ── detail panel ── */
+  .card{background:rgba(255,255,255,.04);border:1px solid var(--edge);border-radius:14px;padding:16px 17px}
+  .d-head{margin:0;font-family:var(--font-display);font-size:18px;font-weight:700;letter-spacing:-.01em}
+  .d-sub{margin:6px 0 15px;font-size:12.5px;color:var(--mist);line-height:1.6}
+  .d-label{font-size:10.5px;letter-spacing:.16em;color:var(--accent);margin:0 0 9px;transition:color .8s ease}
+  ul.signs{list-style:none;margin:0;padding:0}
+  ul.signs li{position:relative;padding-left:17px;font-size:13.5px;color:#C6CEE6;line-height:1.65;margin-bottom:7px}
+  ul.signs li:last-child{margin-bottom:0}
+  ul.signs li::before{content:"";position:absolute;left:2px;top:9px;width:5px;height:5px;border-radius:50%;background:var(--accent);transition:background-color .8s ease}
+  .peak-box{margin-top:15px;padding:13px 14px;border-radius:11px;
+    background:rgba(140,160,217,.16);border-left:3px solid var(--rain)}
+  .peak-box.soon{background:rgba(255,255,255,.04);border-left-color:var(--edge)}
+  .peak-box b{display:block;font-size:10.5px;letter-spacing:.14em;color:var(--rain);margin-bottom:6px}
+  .peak-box.soon b{color:var(--mist)}
+  .peak-box p{margin:0;font-size:13.5px;line-height:1.65;color:#DEE4F5}
+  .d-tip{margin:15px 0 0;padding-top:13px;border-top:1px solid rgba(255,255,255,.08);
+    font-size:12.5px;color:var(--mist);line-height:1.65}
+
+  /* ── calendar ── */
+  .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .cal-nav strong{font-family:var(--font-display);font-size:17px;font-weight:700}
+  .cal-nav button{
+    width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.05);
+    border:1px solid var(--edge);color:var(--snow);font-size:15px;cursor:pointer;line-height:1;
+  }
+  .dow,.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+  .dow span{text-align:center;font-size:10.5px;color:var(--mist);padding:0 0 6px}
+  .dow span:first-child{color:#E8899B}
+  .cell{
+    position:relative;aspect-ratio:1/1;border-radius:9px;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-num);font-size:13px;color:var(--mist);
+    background:rgba(255,255,255,.025);
+    border:0;padding:0;cursor:pointer;transition:transform .12s ease;
+  }
+  .cell:active{transform:scale(.92)}
+  .cell:focus-visible{outline:2px solid var(--sun);outline-offset:1px}
+  .cell.empty{background:none;cursor:default}
+  .cell.pre{color:#5C668A}
+  .cell.sun{background:rgba(255,194,77,.09);color:#F2E3C4}
+  .cell.storm{background:rgba(140,160,217,.20);color:var(--snow)}
+  .cell.peak{background:rgba(140,160,217,.42);color:#fff;font-weight:600}
+  .cell.done{background:rgba(255,255,255,.02);color:#5C668A}
+  .cell.today{box-shadow:inset 0 0 0 2px var(--sun)}
+  .cell.sel{box-shadow:inset 0 0 0 2px var(--snow)}
+  .today-btn{
+    margin-top:12px;padding:7px 13px;font-size:12px;font-family:inherit;
+    background:rgba(255,255,255,.06);color:var(--snow);
+    border:1px solid var(--edge);border-radius:99px;cursor:pointer;
+  }
+  .cell sup{
+    position:absolute;top:3px;right:5px;font-size:9px;color:var(--rain);font-weight:600;
+  }
+  .cell.peak sup{color:#DCE5FF}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:13px;font-size:11.5px;color:var(--mist)}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:4px;margin-right:6px;vertical-align:-1px}
+
+  /* ── timeline ── */
+  .leap{
+    display:grid;grid-template-columns:34px 1fr auto;gap:12px;align-items:start;
+    padding:14px 2px;border-top:1px solid rgba(255,255,255,.07);
+  }
+  .leap:first-of-type{border-top:0}
+  .leap .no{font-family:var(--font-num);font-size:15px;color:var(--mist);padding-top:1px}
+  .leap.now .no{color:var(--rain)}
+  .leap h3{margin:0 0 3px;font-family:var(--font-display);font-size:16px;font-weight:700}
+  .leap .range{margin:0 0 6px;font-family:var(--font-num);font-size:11.5px;color:var(--mist)}
+  .leap p{margin:0;font-size:12.5px;color:#B9C3DE;line-height:1.6}
+  .chip{
+    font-size:10.5px;padding:3px 8px;border-radius:99px;white-space:nowrap;
+    border:1px solid var(--edge);color:var(--mist);font-family:var(--font-num);
+  }
+  .chip.now{background:rgba(140,160,217,.22);border-color:var(--rain);color:#DCE5FF}
+  .chip.past{opacity:.45}
+
+  footer{font-size:11.5px;color:#6E789A;line-height:1.65;padding:4px 2px 0;border-top:1px solid rgba(255,255,255,.07);padding-top:16px}
+  .hidden{display:none !important}
+  @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body data-sky="idle">
+<main>
+  <header>
+    <p class="eyebrow">The Wonder Weeks</p>
+    <h1>아기 <em>도약</em> 달력</h1>
+  </header>
+
+  <section class="setup" id="setup">
+    <p class="lead">도약 시기는 태어난 날이 아니라 <b>출산예정일</b>을 기준으로 셉니다.</p>
+    <div class="modes" role="group" aria-label="기준일 종류">
+      <button type="button" data-mode="due" aria-pressed="true">출산예정일</button>
+      <button type="button" data-mode="birth" aria-pressed="false">태어난 날</button>
+    </div>
+    <input type="date" id="dateInput" aria-label="기준 날짜">
+    <p class="err hidden" id="dateErr"></p>
+    <p class="or">또는 골라서 입력</p>
+    <div class="picker">
+      <select id="ySel" aria-label="년"></select>
+      <select id="mSel" aria-label="월"></select>
+      <select id="dSel" aria-label="일"></select>
+    </div>
+    <p class="hint" id="modeHint">예정일을 넣으면 조산·늦은 출산과 상관없이 정확하게 맞춰집니다.</p>
+  </section>
+
+  <div class="summary hidden" id="summary">
+    <span><b id="sumDate"></b> 기준</span>
+    <button type="button" id="editBtn">날짜 바꾸기</button>
+  </div>
+
+  <div id="result" class="hidden">
+    <div class="hero">
+      <div class="sky" id="sky">
+        <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+        <div class="rain"></div>
+        <div class="sun-disc"></div>
+        <div class="horizon"></div>
+      </div>
+      <div class="forecast">
+        <p class="fc-line" id="fcLine">—</p>
+        <p class="fc-sub" id="fcSub"></p>
+        <button type="button" class="today-btn hidden" id="backToday">오늘로 돌아가기</button>
+        <div class="bar-wrap" id="barWrap">
+          <div class="bar"><i id="barFill" style="width:0%"></i></div>
+          <div class="bar-ends"><span id="barFrom"></span><span id="barTo"></span></div>
+        </div>
+      </div>
+    </div>
+
+    <dl class="strip">
+      <div><dt>수정 연령</dt><dd id="sAge">—</dd></div>
+      <div><dt id="sNextLabel">다음</dt><dd id="sNext">—</dd></div>
+      <div><dt>지나온 도약</dt><dd id="sDone">—<small>/10</small></dd></div>
+    </dl>
+
+    <section>
+      <h2 id="dSection">이 날의 모습</h2>
+      <div class="card">
+        <p class="d-head" id="dHead">—</p>
+        <p class="d-sub" id="dSub"></p>
+        <p class="d-label" id="dLabel"></p>
+        <ul class="signs" id="dSigns"></ul>
+        <div class="peak-box hidden" id="dPeak"><b></b><p></p></div>
+        <p class="d-tip" id="dTip"></p>
+      </div>
+    </section>
+
+    <section>
+      <h2>달력</h2>
+      <div class="cal-nav">
+        <button type="button" id="prevM" aria-label="이전 달">‹</button>
+        <strong id="calTitle"></strong>
+        <button type="button" id="nextM" aria-label="다음 달">›</button>
+      </div>
+      <div class="dow"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+      <div class="grid" id="grid"></div>
+      <div class="legend">
+        <span><i style="background:rgba(140,160,217,.42)"></i>폭풍 절정</span>
+        <span><i style="background:rgba(140,160,217,.20)"></i>도약기</span>
+        <span><i style="background:rgba(255,194,77,.09)"></i>맑음</span>
+        <span><i style="box-shadow:inset 0 0 0 2px var(--sun)"></i>오늘</span>
+      </div>
+    </section>
+
+    <section>
+      <h2>열 번의 도약</h2>
+      <div id="timeline"></div>
+    </section>
+  </div>
+
+  <footer>
+    원더윅스는 헤티 반 더 레이트·프란스 플로이의 관찰에 바탕한 발달 참고 지표입니다.
+    아기마다 편차가 있으니 며칠 어긋나는 건 자연스럽습니다.
+    잘 먹지 못하거나 열이 나는 등 평소와 다른 신호가 보이면 도약으로 넘기지 말고 진료를 받아보세요.
+  </footer>
+</main>
+
+<script>
+const MS = 86400000;
+const LEAPS = [
+  {n:1,  name:'감각의 세계',        s:32,  e:39,
+   blurb:'빛·소리·냄새가 갑자기 또렷해집니다. 자주 깨고 더 안기려 해요. 대신 첫 눈맞춤과 첫 미소가 옵니다.',
+   signs:['이유를 알 수 없는 울음이 늘고, 달래도 금방 그치지 않아요','수유 중 자꾸 멈추고 보챕니다','잠들기 어려워하고 짧게 자주 깨요','안겨 있을 때만 진정되고 내려놓으면 바로 웁니다'],
+   peak:'저녁 무렵으로 울음이 몰립니다. 배앓이나 영아산통처럼 보이지만 감각이 한꺼번에 열리면서 오는 과부하인 경우가 많아요. 하루 중 이 시간대만 유독 심하다면 도약 신호입니다.',
+   skills:['눈을 오래 맞춥니다','첫 사회적 미소가 나옵니다','소리 나는 쪽으로 고개를 돌려요','냄새와 촉감에 또렷하게 반응합니다'],
+   tip:'자극을 줄이는 게 최선입니다. 불을 낮추고 소리를 줄이고, 피부를 맞대고 안아주세요.'},
+
+  {n:2,  name:'패턴의 세계',        s:53,  e:67,
+   blurb:'윤곽과 반복되는 형태를 알아봅니다. 자기 손을 발견해 한참 들여다보고, 소리에 소리로 답하기 시작해요.',
+   signs:['익숙하지 않은 사람의 품을 거부합니다','수유 리듬이 흐트러지고 먹다 말다 반복해요','낮잠이 눈에 띄게 짧아집니다','한 곳을 멍하니 보다가 갑자기 울음이 터져요'],
+   peak:'안아주는 사람이 바뀌는 걸 못 견딥니다. 늘 보던 얼굴에만 안기려 하고, 잠깐 내려놓아도 즉시 울어요. 할머니나 아빠에게 갔다가 되돌아오는 일이 반복됩니다.',
+   skills:['자기 손과 발을 발견해 한참 들여다봅니다','소리에 소리로 답합니다','머리를 스스로 좌우로 돌려요','사물의 윤곽을 눈으로 훑습니다'],
+   tip:'같은 사람이 같은 방식으로 달래주는 게 좋습니다. 반복되는 노래나 루틴을 만들어 주세요.'},
+
+  {n:3,  name:'부드러운 변화의 세계', s:81,  e:88,
+   blurb:'움직임과 목소리의 미세한 변화를 감지합니다. 옹알이 높낮이가 다양해지고 표정이 풍부해져요.',
+   signs:['짧지만 굵은 짜증이 몰아칩니다','잘 먹던 양이 줄어들어요','목소리 톤이 조금만 바뀌어도 예민하게 반응합니다','안아달라는 요구가 부쩍 늘어요'],
+   peak:'12주 무렵 며칠간 집중적으로 보챕니다. 다만 열 번의 도약 중 가장 짧은 폭풍이라 일주일 안에 지나가요.',
+   skills:['목소리 높낮이를 조절합니다','소리 내어 웃어요','움직이는 물체를 눈으로 따라갑니다','몸을 부드럽게 굴리기 시작합니다'],
+   tip:'짧게 끝나는 시기예요. 새로운 걸 시도하기보다 하던 리듬을 유지하는 편이 낫습니다.'},
+
+  {n:4,  name:'사건의 세계',        s:102, e:137,
+   blurb:'여러 동작을 하나의 사건으로 묶습니다. 물건을 잡아 입으로 가져가요. 첫 번째로 길고 힘든 도약입니다.',
+   signs:['식욕이 눈에 띄게 떨어집니다','밤에 여러 번 깨고 다시 잠들기 어려워해요','낯가림이 시작됩니다','늘 좋아하던 장난감에 흥미를 잃어요','짜증이 잦고 한 번 울면 길어집니다'],
+   peak:'18~19주 무렵이 가장 힘듭니다. 이른바 4개월 수면 퇴행이 겹치는 시기라 밤중 각성이 최고조에 이르고, 안아줘도 등을 뒤로 젖히며 울어요. 다섯 주나 이어지는 긴 폭풍이라 부모의 체력이 먼저 바닥납니다.',
+   skills:['물건을 잡아 입으로 가져갑니다','뒤집기를 해냅니다','옹알이가 음절처럼 들려요','거울 속 자기 모습을 봅니다'],
+   tip:'가장 긴 도약입니다. 이 시기만큼은 도움을 요청하고 교대로 쉬세요. 수면 훈련을 새로 시작하기에는 최악의 타이밍입니다.'},
+
+  {n:5,  name:'관계의 세계',        s:158, e:186,
+   blurb:'거리와 안팎을 이해합니다. 엄마아빠가 멀어지는 게 무슨 뜻인지 알게 되면서 낯가림과 분리불안이 시작돼요.',
+   signs:['분리불안이 본격적으로 시작됩니다','자다 깨서 확인하듯 울어요','낯가림이 심해집니다','방을 나가면 곧바로 울음이 터집니다','다른 사람을 안아주면 질투 비슷한 반응을 보여요'],
+   peak:'26주 전후가 절정입니다. 화장실도 따라오려 할 만큼 붙어 있으려 하고, 잠자리에서 떨어지는 걸 가장 힘들어해요. 시야에서 사라지는 것 자체가 공포로 느껴지는 시기입니다.',
+   skills:['가깝고 먼 거리를 이해합니다','기어가려는 시도가 시작돼요','까꿍놀이의 규칙을 이해합니다','자기 이름에 반응해요'],
+   tip:'몰래 나가지 말고 "다녀올게" 하고 인사한 뒤 나가세요. 사라져도 돌아온다는 걸 반복해서 확인시켜 주는 게 이 도약의 핵심입니다.'},
+
+  {n:6,  name:'분류의 세계',        s:235, e:263,
+   blurb:'사물을 종류로 묶습니다. 강아지는 크든 작든 강아지. 어른 행동을 흉내 내기 시작해요.',
+   signs:['기분이 급하게 오르내립니다','먹는 걸 골라내기 시작해요','낮잠을 거부합니다','옷 입힐 때 심하게 버둥거려요','밤에 놀란 듯 깨어 웁니다'],
+   peak:'37주 무렵. 이유 없이 울다가 갑자기 웃는 변덕이 가장 심합니다. 기저귀 갈기와 옷 입히기가 매번 실랑이가 돼요.',
+   skills:['같은 종류끼리 묶어서 알아봅니다','어른 행동을 흉내 냅니다','표정을 따라 해요','엄지와 검지로 작은 것을 집습니다'],
+   tip:'분류를 배우는 중이니 같은 것끼리 모으는 놀이를 좋아합니다. 서랍이나 그릇을 비우고 채우게 두세요.'},
+
+  {n:7,  name:'순서의 세계',        s:291, e:326,
+   blurb:'일이 일어나는 차례를 압니다. 블록을 쌓고 모양을 맞추고, 스스로 옷 입기를 시도해요.',
+   signs:['고집이 눈에 띄게 세집니다','도와주면 오히려 화를 내요','직접 하려다 실패해서 울음이 터집니다','밤중 각성이 다시 늘어요'],
+   peak:'46주 전후. "내가 할 거야"의 첫 형태가 나타납니다. 뜻대로 되지 않으면 몸을 뒤로 젖히며 크게 울고, 도와주려 손을 대면 더 격해져요.',
+   skills:['물건을 순서대로 놓습니다','뚜껑을 열고 닫아요','첫 단어가 나옵니다','손짓으로 원하는 걸 표현합니다'],
+   tip:'실패해도 조금 기다려 주세요. 끝까지 스스로 해보게 두는 게 이 시기 짜증을 줄이는 가장 빠른 길입니다.'},
+
+  {n:8,  name:'프로그램의 세계',     s:354, e:382,
+   blurb:'하나의 목표를 여러 단계로 해냅니다. 청소나 설거지를 따라 하고, 자기 방식대로 하겠다는 고집이 세져요.',
+   signs:['첫 떼쓰기가 시작됩니다','"안 돼"라는 말에 격하게 반응해요','밥 먹이기가 힘들어집니다','한시도 떨어지지 않고 따라다녀요'],
+   peak:'돌 전후가 절정입니다. 바닥에 드러눕는 형태의 떼쓰기가 처음 나타나요. 자기가 정한 순서대로 되지 않으면 처음부터 다시 하려 하고, 중간에 끊으면 무너집니다.',
+   skills:['집안일을 흉내 냅니다','걷기를 시도해요','두 단계짜리 심부름을 이해합니다','"내 것"이라는 개념이 생깁니다'],
+   tip:'떼쓰기는 못된 게 아니라 계획이 무너진 좌절입니다. 야단치기보다 다시 할 기회를 주는 편이 빨리 가라앉아요.'},
+
+  {n:9,  name:'원칙의 세계',        s:417, e:452,
+   blurb:'상황에 따라 방법을 바꿔봅니다. 어디까지 되는지 시험하고, 떼쓰기와 협상이 본격적으로 시작돼요.',
+   signs:['하지 말라는 걸 보란 듯이 반복합니다','감정 기복이 하루에도 여러 번 바뀌어요','협상을 시도합니다','잘 자던 아이가 다시 깨기 시작해요'],
+   peak:'64주 전후. 떼쓰기의 강도가 가장 셉니다. 안 된다는 걸 알면서도 부모 얼굴을 보며 일부러 해요. 반항이 아니라 규칙이 언제나 같은지 확인하는 실험입니다.',
+   skills:['상황에 따라 방법을 바꿉니다','두 단어를 붙여 말해요','다른 사람의 감정을 눈치챕니다','숟가락을 제법 씁니다'],
+   tip:'되는 것과 안 되는 것의 기준을 매번 똑같이 유지하세요. 흔들리면 시험이 더 길어집니다.'},
+
+  {n:10, name:'시스템의 세계',      s:494, e:536,
+   blurb:'규칙과 역할을 이해합니다. "나"와 "내 것"이 분명해지고, 도와주려는 마음과 양심이 싹터요.',
+   signs:['"내 거!"라며 소유를 강하게 주장합니다','규칙에 정면으로 저항해요','다른 아이를 밀거나 때릴 수 있습니다','잠자리에서 요구가 부쩍 늘어요'],
+   peak:'75주 전후. 자아가 단단해지면서 거의 모든 것에 "싫어"로 답합니다. 다만 같은 시기에 미안해하거나 위로하려는 반응도 처음 나타나요.',
+   skills:['나와 남을 구분합니다','규칙이 있다는 걸 이해해요','상상 놀이를 시작합니다','도와주려는 마음을 보입니다'],
+   tip:'선택지를 두 개 주면 훨씬 수월합니다. "입을래 말래" 대신 "빨간 옷, 파란 옷 중에 뭐 입을래"로 물어보세요.'}
+];
+const LAST = LEAPS[LEAPS.length-1].e;
+
+const $ = id => document.getElementById(id);
+const mid = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const addDays = (d,n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+const idx = (date, base) => Math.round((mid(date) - mid(base)) / MS);
+const fmt = d => `${d.getFullYear()}. ${String(d.getMonth()+1).padStart(2,'0')}. ${String(d.getDate()).padStart(2,'0')}`;
+const fmtShort = d => `${d.getMonth()+1}월 ${d.getDate()}일`;
+const peakStart = L => L.e - Math.max(2, Math.min(7, Math.ceil((L.e-L.s+1)/3))) + 1;
+
+function stateAt(d){
+  if (d < 0) return {kind:'pre'};
+  for (const L of LEAPS) if (d >= L.s && d <= L.e) return {kind:'storm', leap:L, peak:d >= peakStart(L)};
+  if (d > LAST) return {kind:'done'};
+  return {kind:'sun', next: LEAPS.find(L => L.s > d)};
+}
+
+let base = null, mode = 'due', cal = new Date(), selected = null;
+
+const KEY = 'wonderweeks:setup';
+function saveSetup(){
+  try{ localStorage.setItem(KEY, JSON.stringify({date: $('dateInput').value, mode})); }catch(e){}
+}
+function loadSetup(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return;
+    const v = JSON.parse(raw);
+    if(v.mode) setMode(v.mode);
+    if(v.date){
+      $('dateInput').value = v.date;
+      const [y,m,d] = v.date.split('-').map(Number);
+      if(y >= Y_MIN && y <= Y_MAX) syncPicker(y, m, d);
+      apply();
+    }
+  }catch(e){}
+}
+
+function setMode(m){
+  mode = m;
+  document.querySelectorAll('.modes button').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+  $('modeHint').textContent = m === 'due'
+    ? '예정일을 넣으면 조산·늦은 출산과 상관없이 정확하게 맞춰집니다.'
+    : '예정일보다 이르거나 늦게 태어났다면 그만큼 어긋납니다. 예정일을 아신다면 그쪽이 더 정확해요.';
+}
+
+const pad = n => String(n).padStart(2,'0');
+const Y_NOW = new Date().getFullYear();
+const Y_MIN = Y_NOW - 5, Y_MAX = Y_NOW + 2;
+
+function buildPicker(){
+  let y = '';
+  for(let v = Y_MAX; v >= Y_MIN; v--) y += `<option value="${v}">${v}년</option>`;
+  $('ySel').innerHTML = y;
+  let m = '';
+  for(let v = 1; v <= 12; v++) m += `<option value="${v}">${v}월</option>`;
+  $('mSel').innerHTML = m;
+}
+function buildDays(y, m, keep){
+  const last = new Date(y, m, 0).getDate();
+  let s = '';
+  for(let v = 1; v <= last; v++) s += `<option value="${v}">${v}일</option>`;
+  $('dSel').innerHTML = s;
+  $('dSel').value = Math.min(keep || 1, last);
+  return Number($('dSel').value);
+}
+function syncPicker(y, m, d){
+  $('ySel').value = y; $('mSel').value = m; buildDays(y, m, d);
+}
+function showErr(msg){ $('dateErr').textContent = msg; $('dateErr').classList.remove('hidden'); }
+function hideErr(){ $('dateErr').classList.add('hidden'); }
+
+function apply(){
+  const v = $('dateInput').value;
+  if(!v) return;
+  const [y,m,d] = v.split('-').map(Number);
+  if(!y || y < Y_MIN || y > Y_MAX){
+    showErr(`${Y_MIN}년부터 ${Y_MAX}년 사이로 입력해 주세요. 연도 네 자리를 모두 채워야 반영됩니다.`);
+    return;
+  }
+  hideErr();
+  const wasHidden = $('result').classList.contains('hidden');
+  base = new Date(y, m-1, d);
+  cal = new Date();
+  selected = null;
+  $('setup').classList.add('hidden');
+  $('summary').classList.remove('hidden');
+  $('result').classList.remove('hidden');
+  $('sumDate').textContent = `${fmt(base)} · ${mode === 'due' ? '출산예정일' : '태어난 날'}`;
+  render();
+  saveSetup();
+  if(wasHidden) $('result').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function render(){
+  const view = selected || new Date();
+  const isToday = mid(view).getTime() === mid(new Date()).getTime();
+  const when = isToday ? '오늘은' : `${view.getMonth()+1}월 ${view.getDate()}일은`;
+  $('backToday').classList.toggle('hidden', isToday);
+  const d = idx(view, base);
+  const st = stateAt(d);
+  const sky = $('sky');
+  sky.className = 'sky ' + (st.kind === 'storm' ? 'storm' : 'sun');
+  document.body.dataset.sky = st.kind === 'storm' ? 'storm' : 'sun';
+  document.documentElement.style.setProperty('--accent',
+    st.kind === 'storm' ? 'var(--rain)' : 'var(--sun)');
+  document.documentElement.style.setProperty('--bg2',
+    st.kind === 'storm' ? '#1B2340' : '#2A2440');
+
+  // forecast
+  const line = $('fcLine'), sub = $('fcSub'), bw = $('barWrap');
+  if(st.kind === 'pre'){
+    line.innerHTML = '아직 <span>기다리는 중</span>';
+    sub.innerHTML = isToday
+      ? `예정일까지 <b>${-d}일</b> 남았어요.`
+      : `예정일 <b>${-d}일</b> 전이에요.`;
+    bw.classList.add('hidden');
+  } else if(st.kind === 'done'){
+    line.innerHTML = '열 번의 도약, <span>모두 지났어요</span>';
+    sub.innerHTML = '마지막 도약까지 다 끝났습니다. 이제 날씨는 아이가 직접 만들어 가요.';
+    bw.classList.add('hidden');
+  } else if(st.kind === 'storm'){
+    const L = st.leap, day = d - L.s + 1, left = L.e - d;
+    line.innerHTML = `${when} ` + (st.peak ? '<span>폭풍의 한가운데</span>' : '<span>폭풍</span>');
+    sub.innerHTML = `${L.n}번째 도약 · ${L.name} · <b>${day}일째</b>` +
+      (left === 0 ? ' · <b>마지막 날</b>' : ` · 맑아지기까지 <b>${left}일</b>`);
+    bw.classList.remove('hidden');
+    $('barFill').style.width = ((d - L.s) / (L.e - L.s) * 100).toFixed(1) + '%';
+    $('barFrom').textContent = fmtShort(addDays(base, L.s)) + ' 시작';
+    $('barTo').textContent = fmtShort(addDays(base, L.e)) + ' 끝';
+  } else {
+    const N = st.next, until = N.s - d;
+    line.innerHTML = `${when} <span>맑음</span>`;
+    sub.innerHTML = `${N.n}번째 도약까지 <b>${until}일</b> · 잘 웃고 잘 자는 시기예요.`;
+    bw.classList.remove('hidden');
+    const prevEnd = LEAPS.filter(L => L.e < d).map(L => L.e).pop() ?? 0;
+    $('barFill').style.width = ((d - prevEnd) / (N.s - prevEnd) * 100).toFixed(1) + '%';
+    $('barFrom').textContent = '맑음 시작';
+    $('barTo').textContent = fmtShort(addDays(base, N.s)) + ' 도약';
+  }
+
+  // strip
+  if(d < 0){
+    $('sAge').innerHTML = `D<small>-${-d}</small>`;
+  } else {
+    $('sAge').innerHTML = `${Math.floor(d/7)}<small>주</small> ${d%7}<small>일</small>`;
+  }
+  const nextL = LEAPS.find(L => L.s > d);
+  if(st.kind === 'storm'){
+    $('sNextLabel').textContent = '맑아지는 날';
+    $('sNext').innerHTML = `D<small>-${st.leap.e - d + 1}</small>`;
+  } else if(nextL){
+    $('sNextLabel').textContent = `${nextL.n}번째 도약`;
+    $('sNext').innerHTML = `D<small>-${nextL.s - d}</small>`;
+  } else {
+    $('sNextLabel').textContent = '다음 도약';
+    $('sNext').innerHTML = `<small>없음</small>`;
+  }
+  $('sDone').innerHTML = `${LEAPS.filter(L => L.e < d).length}<small>/10</small>`;
+
+  renderCal();
+  renderTimeline(d);
+  renderDetail(d, st, isToday, view);
+}
+
+function renderDetail(d, st, isToday, view){
+  const head = $('dHead'), sub = $('dSub'), label = $('dLabel'),
+        list = $('dSigns'), box = $('dPeak'), tip = $('dTip');
+  $('dSection').textContent = isToday ? '오늘의 모습' : `${view.getMonth()+1}월 ${view.getDate()}일의 모습`;
+  box.classList.add('hidden'); box.classList.remove('soon');
+  let items = [], tipText = '';
+
+  if(st.kind === 'pre'){
+    const L = LEAPS[0];
+    head.textContent = '아직 도약 전이에요';
+    sub.textContent = '첫 도약은 예정일로부터 4.5주 뒤에 시작됩니다.';
+    label.textContent = '미리 보는 첫 도약의 신호';
+    items = L.signs; tipText = L.tip;
+
+  } else if(st.kind === 'done'){
+    const L = LEAPS[9];
+    head.textContent = '열 번의 도약을 모두 마쳤어요';
+    sub.textContent = '원더윅스가 다루는 20개월 구간이 끝났습니다.';
+    label.textContent = '이제 할 수 있는 것';
+    items = L.skills;
+    tipText = '이후의 변화는 도약표보다 아이의 속도를 보는 편이 정확합니다.';
+
+  } else if(st.kind === 'storm'){
+    const L = st.leap;
+    head.textContent = `${L.n}번째 도약 · ${L.name}`;
+    sub.textContent = st.peak
+      ? '폭풍의 한가운데입니다. 울고(crying)·매달리고(clinging)·보채는(cranky) 3C가 가장 강하게 나타나는 구간이에요.'
+      : '도약기입니다. 세상이 갑자기 달라 보여서 울고·매달리고·보채는 3C가 나타납니다.';
+    label.textContent = '이 시기 흔한 모습';
+    items = L.signs;
+    box.classList.remove('hidden');
+    if(st.peak){
+      box.querySelector('b').textContent = '가장 심한 것';
+      box.querySelector('p').textContent = L.peak;
+    } else {
+      box.classList.add('soon');
+      const ps = addDays(base, peakStart(L)), pe = addDays(base, L.e);
+      box.querySelector('b').textContent = '폭풍 절정 예정';
+      box.querySelector('p').textContent = `${fmtShort(ps)}부터 ${fmtShort(pe)}까지가 가장 힘든 구간입니다.`;
+    }
+    tipText = L.tip;
+
+  } else {
+    const prev = LEAPS.filter(L => L.e < d).pop(), N = st.next;
+    if(prev){
+      head.textContent = `맑음 · ${prev.n}번째 도약을 마친 뒤`;
+      sub.textContent = '새로 익힌 걸 연습하는 시기예요. 비교적 잘 먹고 잘 자고 잘 웃습니다.';
+      label.textContent = '요즘 부쩍 늘어난 것';
+      items = prev.skills;
+    } else {
+      head.textContent = '맑음 · 첫 도약 전';
+      sub.textContent = '아직 도약이 시작되지 않았습니다. 먹고 자는 리듬을 잡아가는 때예요.';
+      label.textContent = '이 시기 모습';
+      items = ['하루 대부분을 자고 먹으며 보냅니다','짧은 시간 얼굴에 초점을 맞춥니다','큰 소리에 놀라는 반사가 남아 있어요'];
+    }
+    tipText = `다음 폭풍은 ${fmtShort(addDays(base, N.s))}부터 — ${N.n}번째 도약 · ${N.name}`;
+  }
+
+  list.innerHTML = items.map(t => `<li>${t}</li>`).join('');
+  tip.textContent = tipText;
+}
+
+function renderCal(){
+  const y = cal.getFullYear(), m = cal.getMonth();
+  $('calTitle').textContent = `${y}년 ${m+1}월`;
+  const first = new Date(y, m, 1), days = new Date(y, m+1, 0).getDate();
+  const todayKey = mid(new Date()).getTime();
+  const selKey = selected ? mid(selected).getTime() : null;
+  let html = '';
+  for(let i = 0; i < first.getDay(); i++) html += '<div class="cell empty"></div>';
+  for(let day = 1; day <= days; day++){
+    const date = new Date(y, m, day);
+    const d = idx(date, base), st = stateAt(d);
+    let cls = 'cell ', sup = '';
+    if(st.kind === 'pre') cls += 'pre';
+    else if(st.kind === 'done') cls += 'done';
+    else if(st.kind === 'storm'){
+      cls += st.peak ? 'storm peak' : 'storm';
+      if(d === st.leap.s) sup = `<sup>${st.leap.n}</sup>`;
+    } else cls += 'sun';
+    const key = date.getTime();
+    if(key === todayKey) cls += ' today';
+    else if(key === selKey) cls += ' sel';
+    const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    html += `<button type="button" class="${cls}" data-date="${iso}" aria-label="${m+1}월 ${day}일">${day}${sup}</button>`;
+  }
+  $('grid').innerHTML = html;
+}
+
+function renderTimeline(now){
+  $('timeline').innerHTML = LEAPS.map(L => {
+    const from = addDays(base, L.s), to = addDays(base, L.e);
+    let chip = `<span class="chip">D-${L.s - now}</span>`, cls = '';
+    if(now > L.e) chip = '<span class="chip past">지남</span>';
+    else if(now >= L.s){ chip = '<span class="chip now">진행 중</span>'; cls = ' now'; }
+    return `<div class="leap${cls}">
+      <div class="no">${String(L.n).padStart(2,'0')}</div>
+      <div>
+        <h3>${L.name}</h3>
+        <p class="range">${fmt(from)} – ${fmt(to)} · ${(L.s/7).toFixed(1)}~${(L.e/7).toFixed(1)}주</p>
+        <p>${L.blurb}</p>
+      </div>
+      ${chip}
+    </div>`;
+  }).join('');
+}
+
+document.querySelectorAll('.modes button').forEach(b =>
+  b.addEventListener('click', () => { setMode(b.dataset.mode); if(base) apply(); }));
+
+$('dateInput').addEventListener('change', () => {
+  const v = $('dateInput').value;
+  if(!v) return;
+  const [y,m,d] = v.split('-').map(Number);
+  if(y >= Y_MIN && y <= Y_MAX) syncPicker(y, m, d);
+  apply();
+});
+function fromPicker(){
+  const y = Number($('ySel').value), m = Number($('mSel').value);
+  const keep = Number($('dSel').value) || 1;
+  const d = buildDays(y, m, keep);
+  $('dateInput').value = `${y}-${pad(m)}-${pad(d)}`;
+  apply();
+}
+['ySel','mSel','dSel'].forEach(id => $(id).addEventListener('change', fromPicker));
+
+$('editBtn').addEventListener('click', () => {
+  hideErr();
+  if(base) syncPicker(base.getFullYear(), base.getMonth()+1, base.getDate());
+  $('setup').classList.remove('hidden');
+  $('summary').classList.add('hidden');
+  $('setup').scrollIntoView({behavior:'smooth', block:'center'});
+});
+$('grid').addEventListener('click', e => {
+  const c = e.target.closest('.cell[data-date]');
+  if(!c) return;
+  const [y,m,d] = c.dataset.date.split('-').map(Number);
+  selected = new Date(y, m-1, d);
+  render();
+  document.querySelector('.hero').scrollIntoView({behavior:'smooth', block:'start'});
+});
+$('backToday').addEventListener('click', () => {
+  selected = null;
+  cal = new Date();
+  render();
+});
+$('prevM').addEventListener('click', () => { cal.setDate(1); cal.setMonth(cal.getMonth()-1); renderCal(); });
+$('nextM').addEventListener('click', () => { cal.setDate(1); cal.setMonth(cal.getMonth()+1); renderCal(); });
+
+buildPicker();
+$('dateInput').min = `${Y_MIN}-01-01`;
+$('dateInput').max = `${Y_MAX}-12-31`;
+const _t = new Date();
+syncPicker(_t.getFullYear(), _t.getMonth()+1, _t.getDate());
+setMode('due');
+loadSetup();
+</script>
+</body>
+</html>
