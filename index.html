@@ -574,7 +574,7 @@ function render(){
   if(d < 0){
     $('sAge').innerHTML = `D<small>-${-d}</small>`;
   } else {
-    $('sAge').innerHTML = `${Math.floor(d/7)}<small>주</small> ${d%7}<small>일</small> <small style="color:var(--mist);margin-left:6px">(생후 ${d}일)</small>`;
+    $('sAge').innerHTML = `${Math.floor(d/7)}<small>주</small> ${d%7}<small>일</small> <small style="color:var(--mist);margin-left:6px">(생후 ${d+1}일)</small>`;
   }
   const nextL = LEAPS.find(L => L.s > d);
   if(st.kind === 'storm'){
